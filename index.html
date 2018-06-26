@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Election Information</title>
+  <script src="https://d3js.org/d3.v4.js"></script>
+  <style> 
+    div.tooltip { 
+      position: absolute;     
+      text-align: left;     
+      width: 250px;          
+      height: 65px;         
+      padding: 2px;       
+      font: 12px sans-serif;    
+      background: #E6FFF7;  
+      border: 2px solid;
+      border-color: #7AA38F; 
+      border-radius:5px;       
+      pointer-events: none;     
+    }
+
+    h1 {
+        font-family: sans-serif;
+        margin-left: 110px;
+        padding:10px;
+    }
+    p {
+        font-family: sans-serif;
+        margin-left: 110px;
+        font-size: 16px;
+        padding:5px;
+    }
+
+  </style>
+</head>
+<body>
+<h1> Presidential Election Information: 1940 - 2016 </h1>
+<p id ="yearLabel"> 2016 </p>
+  <script type="text/javascript">
+    var selectedYear = 2016;
+    var electionData;
+
+    var width = 800;
+    var height = 400;
+
+    var xScale = d3.scaleLinear()
+        .range([0,800])
+        .domain([0,12]);
+
+    var yScale = d3.scaleLinear()
+        .range([0, 400])
+        .domain([0,8]);
+
+    var timeline = d3.select("body")
+        .append("svg")
+        .attr("width", 800)
+        .attr("height", 50)
+        .style("padding", "5px")
+        .style("padding-left", "40px")
+        .style("align", "center");
+
+    var canvas = d3.select("body")
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .style("padding", "20px")
+        .style("padding-left", "40px")
+        .style("align", "center");
+
+    var tooltip = d3.select("body").append("div") 
+        .attr("class", "tooltip")       
+        .style("opacity", 0);
+    
+
+
+    d3.csv("yearwise-winner.csv", function(data) {
+        console.log(data);
+        timeline.selectAll("text")
+        .data(data)
+            .enter()
+            .append("text")
+            .text(function(d) {
+                return d["YEAR"];
+            })
+            .attr("y", 30)
+            .attr("x", function(d) {
+                var yearScale = (d["YEAR"] - 1940)/4;
+                return 15 + (yearScale * 40);
+            })
+            .attr("class", "years")
+            .attr("font-size", 9)
+            .attr("font-family", "sans-serif")
+            .attr("text-align", "center")
+            .attr("fill", "black");
+        
+        timeline.selectAll("circle")
+            .data(data)
+            .enter()
+            .append("circle")
+            .attr("r", 7.5)
+            .attr("id", function(d) {
+                return d["YEAR"];
+            })
+            .attr("cx", function(d) {
+                var yearScale = (d["YEAR"] - 1940)/4;
+                return 25 + (yearScale * 40);
+            })
+            .attr("cy", 10)
+            .attr("stroke-weight", "2")
+            .attr("stroke", "black")
+            .attr("fill", function(d) {
+                if (d["PARTY"] == "D") {
+                    return "#5866F5";
+                }
+                else return "#FF5252";
+            })
+            .on("click", function(d) {
+                if (this.id == "1960") {
+                    alert("Data not available for 1960.");
+                }
+                else {
+                    selectedYear = this.id;
+                    d3.select("#yearLabel")
+                        .text(selectedYear);
+                    canvas.html("");
+                    reload();
+                }
+            });
+    });
+
+    var states = [ ["AK", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "ME"],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "VT", "NH"],
+    [0, "WA", "ID", "MT", "ND", "MN", "IL", "WI", "MI", "NY", "RI", "MA"],
+    [0, "OR", "NV", "WY", "SD", "IA", "IN", "OH", "PA", "NJ", "CT", 0],
+    [0, "CA", "UT", "CO", "NE", "MO", "KY", "WV", "VA", "MD", "DC", 0],
+    [0, 0, 0, "AZ", "NM", "KS", "AR", "TN", "NC", "SC", "DE", 0],
+    [0, 0, 0, 0, 0, "OK", "LA", "MS", "AL", "GA", 0, 0],
+    [0, "HI", 0, 0, 0,"TX", 0, 0, 0, 0, "FL", 0], ];
+
+
+    function reload() {
+    var filepath = "election-results-" + selectedYear + ".csv";
+        d3.csv(filepath, function(data) {
+        console.log(data);
+        canvas.selectAll("rect")
+            .data(data)
+            .enter()
+            .append("rect")
+            .attr("x", function(d) {
+                for (var i = 0; i < 8; i++) {
+                  for (var j = 0; j < 12; j++) {
+                    if (states[i][j] == d["Abbreviation"]) {
+                      return xScale(j);
+                    }
+                  }
+                }
+            })
+            .attr("y", function(d) {
+                for (var i = 0; i < 8; i++) {
+                  for (var j = 0; j < 12; j++) {
+                    if (states[i][j] == d["Abbreviation"]) {
+                      return yScale(i);
+                    }
+                  }
+                }
+              })
+            .attr("height", 50)
+            .attr("width", 66)
+            .attr("fill", function(d) {
+                var percentage = parseFloat(d["R_Percentage"]) - parseFloat(d["D_Percentage"]);
+                if (percentage < -50) {
+                    return "#0000EE"
+                }
+                else if (percentage < -40) {
+                    return "#2C33F1"
+                }
+                else if (percentage < -30) {
+                    return "#5866F5"
+                }
+                else if (percentage < -20) {
+                    return "#8599F8"
+                }
+                else if (percentage < -10) {
+                    return "#B1CCFC"
+                }
+                else if (percentage < 0) {
+                    return "#CCFFFF"
+                }
+                else if (percentage < 10) {
+                    return "#FFCCCC"
+                }
+                else if (percentage < 20) {
+                    return "#FFA3A3"
+                }
+                else if (percentage < 30) {
+                    return "#FF7a7a"
+                }
+                else if (percentage < 40) {
+                    return "#FF5252"
+                }
+                else if (percentage < 50) {
+                    return "#FF2929"
+                }
+                else {
+                    return "#FF0000"
+                }
+            })
+            .attr("stroke", "white")
+            .attr("stroke-width", "1")
+            .on("mouseover", function(d) {  
+                tooltip.html("<strong>" + d["State"] + "</strong>" + "<br>Electoral Votes: " + d["Total_EV"]+ '<br>' +d["R_Nominee"] + ': '  + d["R_Votes"] + " (" + d["R_Percentage"] + "%)<br>" + d["D_Nominee"] + ": " + d["D_Votes"] + " (" + d["D_Percentage"] + "%)") 
+                .style("left", (d3.event.pageX) + "px")   
+                .style("top", (d3.event.pageY - 28) + "px")
+                .style("opacity", .9);  
+            })          
+            .on("mouseout", function(d) {     
+                tooltip.style("opacity", 0);  
+            });
+
+        texts = canvas.selectAll("text")
+            .data(data)
+            .enter();
+
+
+        texts.append("text")
+            .attr("dy", "0em")
+            .html(function(d) {
+                var text = d["Abbreviation"];
+                return text;
+            })
+            .attr("x", function(d) {
+                for (var i = 0; i < 8; i++) {
+                    for (var j = 0; j < 12; j++) {
+                        if (states[i][j] == d["Abbreviation"]) {
+                            return xScale(j + .35);
+                        }
+                    }
+                }
+            })
+            .attr("y", function(d) {
+                for (var i = 0; i < 8; i++) {
+                    for (var j = 0; j < 12; j++) {
+                        if (states[i][j] == d["Abbreviation"]) {
+                            return yScale(i + .35);
+                        }
+                    }
+                }
+            })
+            .attr("font-size", 12)
+            .attr("font-family", "sans-serif")
+            .attr("text-align", "center")
+            .attr("fill", "black");
+
+        texts.append("text")
+            .html(function(d) {
+                return d["Total_EV"];
+            })
+            .attr("x", function(d) {
+                for (var i = 0; i < 8; i++) {
+                    for (var j = 0; j < 12; j++) {
+                        if (states[i][j] == d["Abbreviation"]) {
+                            var add = .35;
+                            if (d["Total_EV"]< 10) {
+                                add = .4;
+                            }
+                            return xScale(j + add);
+                        }
+                    }
+                }
+            })
+            .attr("y", function(d) {
+                for (var i = 0; i < 8; i++) {
+                    for (var j = 0; j < 12; j++) {
+                        if (states[i][j] == d["Abbreviation"]) {
+                            return yScale(i + .7);
+                        }
+                    }
+                }
+            })
+            .attr("class", "box")
+            .attr("font-size", 12)
+            .attr("font-family", "sans-serif")
+            .attr("text-align", "center")
+            .attr("fill", "black");
+
+    });
+}
+ reload();
+
+
+  </script>
+  <svg width="900" height="100">
+    <rect x="50" y="25" height="10" width="66" fill="#0000EE"/>
+    <rect x="117" y="25" height="10" width="66" fill="#2C33F1"/>
+    <rect x="184" y="25" height="10" width="66" fill="#5866F5"/>
+    <rect x="251" y="25" height="10" width="66" fill="#8599F8"/>
+    <rect x="318" y="25" height="10" width="66" fill="#B1CCFC"/>
+    <rect x="385" y="25" height="10" width="66" fill="#CCFFFF"/>
+    <rect x="452" y="25" height="10" width="66" fill="#FFCCCC"/>
+    <rect x="519" y="25" height="10" width="66" fill="#FFA3A3"/>
+    <rect x="586" y="25" height="10" width="66" fill="#FF7a7a"/>
+    <rect x="653" y="25" height="10" width="66" fill="#FF5252"/>
+    <rect x="720" y="25" height="10" width="66" fill="#FF2929"/>
+    <rect x="787" y="25" height="10" width="66" fill="#FF0000"/>
+
+    <text x="55" y="50" font-size="9" font-family="sans-serif"> -60.0 to -50.0 </text>
+    <text x="123" y="50" font-size="9" font-family="sans-serif"> -50.0 to -40.0 </text>
+    <text x="189" y="50" font-size="9" font-family="sans-serif"> -40.0 to -30.0 </text>
+    <text x="256" y="50" font-size="9" font-family="sans-serif"> -30.0 to -20.0 </text>
+    <text x="323" y="50" font-size="9" font-family="sans-serif"> -20.0 to -10.0 </text>
+    <text x="390" y="50" font-size="9" font-family="sans-serif"> -10.0 to 0.0 </text>
+    <text x="457" y="50" font-size="9" font-family="sans-serif"> 0.0 to 10.0 </text>
+    <text x="524" y="50" font-size="9" font-family="sans-serif"> 10.0 to 20.0 </text>
+    <text x="591" y="50" font-size="9" font-family="sans-serif"> 20.0 to 30.0 </text>
+    <text x="658" y="50" font-size="9" font-family="sans-serif"> 30.0 to 40.0 </text>
+    <text x="725" y="50" font-size="9" font-family="sans-serif"> 40.0 to 50.0 </text>
+    <text x="792" y="50" font-size="9" font-family="sans-serif"> 40.0 to 50.0 </text>
+  </svg>
+</body>
+</html> 
